@@ -5,6 +5,13 @@ import styles from '../styles/Home.module.css'
 
 export default function Home({ people }) {
   const inputRef = useRef()
+  const resultsRef = useRef()
+
+  const [query, setQuery] = useState()
+  const results = people.filter(
+    ({ name }) => query && name.toLowerCase().includes(query.toLowerCase())
+  )
+  const hasResults = results && results.length > 0
 
   useEffect(() => {
     if (inputRef) {
@@ -12,16 +19,49 @@ export default function Home({ people }) {
     }
   }, [])
 
-  const [query, setQuery] = useState()
+  useEffect(() => {
+    if (hasResults) {
+      document.body.addEventListener('keydown', onKeyDown)
+    } else {
+      document.body.removeEventListener('keydown', onKeyDown)
+    }
 
-  const results = people.filter(
-    ({ name }) => query && name.toLowerCase().includes(query.toLowerCase())
-  )
-  const hasResults = results && results.length > 0
+    return () => {
+      document.body.removeEventListener('keydown', onKeyDown)
+    }
+  }, [hasResults])
 
-  /**
-   * handleOnChange
-   */
+  function onKeyDown(event) {
+    event.preventDefault()
+    const isUp = event.key === 'ArrowUp'
+    const isDown = event.key === 'ArrowDown'
+    const inputIsFocused = document.activeElement === inputRef.current
+
+    const resultsItems = Array.from(resultsRef.current.children)
+    const activeResultsIndex = resultsItems.findIndex((child) => {
+      return child.querySelector('a') === document.activeElement
+    })
+
+    if (isUp) {
+      if (inputIsFocused) {
+        resultsItems[resultsItems.length - 1].querySelector('a').focus()
+      } else if (resultsItems[activeResultsIndex - 1]) {
+        resultsItems[activeResultsIndex - 1].querySelector('a').focus()
+      } else {
+        inputRef.current.focus()
+      }
+    }
+
+    if (isDown) {
+      if (inputIsFocused) {
+        resultsItems[0].querySelector('a').focus()
+      } else if (resultsItems[activeResultsIndex + 1]) {
+        resultsItems[activeResultsIndex + 1].querySelector('a').focus()
+      } else {
+        inputRef.current.focus()
+      }
+    }
+  }
 
   function handleOnChange(event) {
     setQuery(event.currentTarget.value)
@@ -46,7 +86,7 @@ export default function Home({ people }) {
           />
           {hasResults && (
             <div className={styles.autocomplete}>
-              <ul className={styles.people}>
+              <ul ref={resultsRef} className={styles.people}>
                 {results.map((result) => {
                   return (
                     <li key={result.url}>
